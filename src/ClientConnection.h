@@ -6,6 +6,8 @@
 #include <cstdio>
 #include <cstdint>
 
+#include <string>
+
 const int MAX_BUFF=1000;
 
 class ClientConnection {
