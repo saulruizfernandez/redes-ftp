@@ -107,8 +107,12 @@ void ClientConnection::WaitForRequests() {
       fscanf(fd, "%s", arg);
       fprintf(fd, "331 User name ok, need password\n");
     } 
-    else if (COMMAND("PWD")) {
-    } 
+    else if (COMMAND("PWD")) { // Print Working Directory on the server for the logged user
+      // To be implemented by students
+      char cwd[MAX_BUFF];
+      getcwd(cwd, sizeof(cwd));
+      fprintf(fd, "257 %s\n", cwd);
+    }
     else if (COMMAND("PASS")) {
       fscanf(fd, "%s", arg);
       if (strcmp(arg, "1234") == 0) {
@@ -130,7 +134,7 @@ void ClientConnection::WaitForRequests() {
       data_socket = connect_TCP(ip, port);
       fprintf(fd, "200 Command okay.\n");
     } 
-    else if (COMMAND("PASV")) {
+    else if (COMMAND("PASV")) { 
       // To be implemented by students
       int s = define_socket_TCP(0);
       struct sockaddr_in fsin;
@@ -173,9 +177,19 @@ void ClientConnection::WaitForRequests() {
         continue;
       } else {
         fprintf(fd, "150 File status okay; about to open data connection.\n");
-
       }
-
+      while (1) {
+        char buffer[MAX_BUFF];
+        int n = fread(buffer, 1, MAX_BUFF, f);
+        if (n == 0) break;
+        send(data_socket, buffer, n, 0);
+        if (n < MAX_BUFF) { // If it does not reach the end, it is the last package
+          break;
+        }
+      }
+      fprintf(fd, "226 Closing data connection. Requested file action successful.\n");
+      close(data_socket);
+      fclose(f);
     } 
     else if (COMMAND("LIST")) { // Hace que el servidor envíe una lista de los archivos en el directorio actual al cliente.
       // To be implemented by students
