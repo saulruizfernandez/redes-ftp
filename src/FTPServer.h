@@ -6,6 +6,9 @@
 
 #include "ClientConnection.h"
 
+int define_socket_TCP(int port);
+void* run_client_connection(void *c);
+
 class FTPServer {
 public:
   FTPServer(int port = 21);

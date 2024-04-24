@@ -31,10 +31,25 @@
 
 
 int define_socket_TCP(int port) {
-   // Include the code for defining the socket.
-  
-  
-   return -1;
+  // Include the code for defining the socket.
+  struct sockaddr_in sin;
+  int s;
+  s = socket(AF_INET, SOCK_STREAM, 0);
+  if (s < 0) {
+    errexit("No se puede crear el socket: %s\n", strerror(errno));
+  }
+  memset(&sin, 0, sizeof(sin)); // Reservar en memoria tantos bytes como sizeof(sin) necesite, se rellenan con 0
+  sin.sin_family = AF_INET; // IPv4
+  sin.sin_addr.s_addr = INADDR_ANY; // Cualquier dirección IP disponible
+  sin.sin_port = htons(port); // From host byte order to network byte order
+
+  if (bind(s, (struct sockaddr *)&sin, sizeof(sin)) < 0) {
+    errexit("No se puedo hacer el bind con el puerto: %s\n", strerror(errno));
+  }
+  if (listen(s, 5) < 0) {
+    errexit("Fallo en el listen: %s\n", strerror(errno));
+  }
+  return s;
 }
 
 
