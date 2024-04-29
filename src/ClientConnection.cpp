@@ -29,42 +29,42 @@
 #include "FTPServer.h"
 #include "common.h"
 
+// Definition of the constructor
 ClientConnection::ClientConnection(int s) {
   int sock = (int)(s);
-
   char buffer[MAX_BUFF];
-
   control_socket = s;
-  // Check the Linux man pages to know what fdopen does.
+  // fdopen() opens the file for control connection from the control socket
+  // Open for reading and appending at the end of the file (a+)
   fd = fdopen(s, "a+");
   if (fd == NULL) {
     std::cout << "Connection closed" << std::endl;
-
     fclose(fd);
     close(control_socket);
     ok = false;
     return;
   }
-
   ok = true;
   data_socket = -1;
   parar = false;
 };
 
+// Definition of the destructor
 ClientConnection::~ClientConnection() {
   fclose(fd);
   close(control_socket);
 }
 
+// This function creates a TCP socket for data sending and connects it to the
+// address and port
 int connect_TCP(uint32_t address, uint16_t port) {
-  // Implement your code to define a socket here
   struct sockaddr_in sin;
   int s;  // Socket descriptor
 
-  memset(&sin, 0, sizeof(sin));
-  sin.sin_family = AF_INET;
-  sin.sin_addr.s_addr = address;
-  sin.sin_port = htons(port);
+  memset(&sin, 0, sizeof(sin));   // Fill the struct with zeros (good practise)
+  sin.sin_family = AF_INET;       // IPv4
+  sin.sin_addr.s_addr = address;  // Address
+  sin.sin_port = htons(port);     // Port
 
   s = socket(AF_INET, SOCK_STREAM, 0);
   std::cout << "socket: " << s << std::endl;
