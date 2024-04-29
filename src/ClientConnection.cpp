@@ -76,7 +76,7 @@ int connect_TCP(uint32_t address, uint16_t port) {
   }
   if (connect(s, (struct sockaddr *)&sin, sizeof(sin)) < 0)
     // Dar formato a host
-    errexit("No se peude conectar con %s: %\n", "host", strerror(errno));
+    errexit("No se puede conectar con: %s \n", "host", strerror(errno));
   return s;  // Return the socket descriptor.
 }
 
@@ -122,18 +122,6 @@ void ClientConnection::WaitForRequests() {
         parar = true;
       }
     } 
-    else if (COMMAND("PORT")) {
-      fscanf(fd, "%s", arg);
-      int a1, a2, a3, a4, p1,
-          p2;  // ai -> address components, pi -> port components
-      fscanf(fd, "%d,%d,%d,%d,%d,%d", &a1, &a2, &a3, &a4, &p1, &p2);
-      uint16_t port = p1 << 8 | p2;
-      uint32_t ip =
-          a1 << 24 | a2 << 16 | a3 << 8 |
-          a4;  // If it does not work, check connect_TCP() implementation
-      data_socket = connect_TCP(ip, port);
-      fprintf(fd, "200 Command okay.\n");
-    } 
     else if (COMMAND("PASV")) { 
       // To be implemented by students
       int s = define_socket_TCP(0);
@@ -145,6 +133,20 @@ void ClientConnection::WaitForRequests() {
       int p2 = port & 0xff;
       fprintf(fd, "227 Entering Passive Mode (127,0,0,1,%d,%d).\n", p1, p2);
       data_socket = accept(s, (struct sockaddr *)&fsin, &len);
+    } 
+    else if (COMMAND("PORT")) {
+      fscanf(fd, "%s", arg);
+      std::cout << "arg: " << arg << std::endl;
+      int a1, a2, a3, a4, p1, p2;  // ai -> address components, pi -> port components
+      sscanf(arg, "%d,%d,%d,%d,%d,%d", &a1, &a2, &a3, &a4, &p1, &p2);
+      uint16_t port = p1 << 8 | p2;
+      uint32_t ip =
+          a1 << 24 | a2 << 16 | a3 << 8 |
+          a4;  // If it does not work, check connect_TCP() implementation
+      std::cout << "ip: " << ip << std::endl;
+      std::cout << "port: " << port << std::endl;
+      data_socket = connect_TCP(ip, port);
+      fprintf(fd, "200 Command okay.\n");
     } 
     else if (COMMAND("STOR")) { // Uploads a copy of a file to the server, replacing it if it exists
       // To be implemented by students
