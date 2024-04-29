@@ -1,3 +1,8 @@
+// Common functions
+
+// Authors: Daniel Pérez Rodríguez, Saúl Ruiz Fernández
+// Date: 29/05/2024
+
 #ifndef COMMON_H
 #define COMMON_H
 
