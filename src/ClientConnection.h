@@ -13,7 +13,7 @@
 #include <cstdio>
 #include <string>
 
-const int MAX_BUFF = 1000;  // Maximum buffer size
+const int MAX_BUFF = 1000;  // Maximum buffer size of the data sent
 
 class ClientConnection {
  public:

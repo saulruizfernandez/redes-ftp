@@ -25,6 +25,7 @@
 // This function creates a TCP socket and binds it to the port passed as
 // argument. Bind is used to associate the socket with the port on the local
 // machine. The function returns the socket descriptor.
+// Passive mode
 int define_socket_TCP(int port) {
   struct sockaddr_in sin;  // Struct to store the address of the socket
   int s;
@@ -39,10 +40,8 @@ int define_socket_TCP(int port) {
   }
   memset(&sin, 0, sizeof(sin));  // Fill the struct with zeros (good practice)
   sin.sin_family = AF_INET;      // IPv4
-  sin.sin_addr.s_addr =
-      INADDR_ANY;  // Accept connections from any address (0.0.0.0)
-  sin.sin_port =
-      htons(port);  // htons() -> from host byte order to network byte order
+  sin.sin_addr.s_addr = INADDR_ANY;  // Accept connections from any address (0.0.0.0)
+  sin.sin_port = htons(port);  // htons() -> from host byte order to network byte order
 
   // Bind the socket to the port
   if (bind(s, (struct sockaddr *)&sin, sizeof(sin)) < 0) {

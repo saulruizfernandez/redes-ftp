@@ -57,42 +57,40 @@ ClientConnection::~ClientConnection() {
 
 // This function creates a TCP socket for data sending and connects it to the
 // address and port
-int connect_TCP(uint32_t address, uint16_t port) {
+int connect_TCP(const char* host, uint16_t port) {
   struct sockaddr_in sin;
-  int s;  // Socket descriptor
+  struct hostent *hent;
+  int s;
 
-  memset(&sin, 0, sizeof(sin));   // Fill the struct with zeros (good practise)
-  sin.sin_family = AF_INET;       // IPv4
-  sin.sin_addr.s_addr = address;  // Address
-  sin.sin_port = htons(port);     // Port
+  memset(&sin, 0, sizeof(sin));
+  sin.sin_family = AF_INET;
+  sin.sin_port = htons(port);
+
+  if (hent = gethostbyname(host))
+    memcpy(&sin.sin_addr, hent->h_addr, hent->h_length);
+  else if ((sin.sin_addr.s_addr = inet_addr((char *)host)) == INADDR_NONE)
+    errexit("No puedo resolver el nombre \"%s\"\n", host);
 
   s = socket(AF_INET, SOCK_STREAM, 0);
-  std::cout << "socket: " << s << std::endl;
-  if (s < 0) {
-    errexit("No se puede crear el socket: %s\n", strerror(errno));
-  }
-  if (connect(s, (struct sockaddr *)&sin, sizeof(sin)) < 0) {
-    close(s);
-    // Dar formato a host
-    errexit("No se puede conectar con %s\n", "cliente", strerror(errno));
-  }
-  return s;  // Return the socket descriptor.
+  if (s < 0) errexit("No se puede crear el socket: %s\n", strerror(errno));
+
+  if (connect(s, (struct sockaddr *)&sin, sizeof(sin)) < 0)
+    errexit("No se puede conectar con %s: %s\n", host, strerror(errno));
+  return s;
 }
 
+// Close client connection
 void ClientConnection::stop() {
   close(data_socket);
   close(control_socket);
   parar = true;
 }
 
+// Check if the command is the one passed as argument
 #define COMMAND(cmd) strcmp(command, cmd) == 0
 
 // This method processes the requests.
-// Here you should implement the actions related to the FTP commands.
-// See the example for the USER command.
-// If you think that you have to add other commands feel free to do so. You
-// are allowed to add auxiliary methods if necessary.
-
+// Implements the actions related to the FTP commands.
 void ClientConnection::WaitForRequests() {
   if (!ok) {
     return;
@@ -109,10 +107,8 @@ void ClientConnection::WaitForRequests() {
       fflush(fd);
       fprintf(fd, "331 User name ok, need password\n");
       fflush(fd);
-    } else if (COMMAND("PWD")) {  // Print Working Directory on the server for
-                                  // the logged user
-      // To be implemented by students
-      char cwd[MAX_BUFF];
+    } else if (COMMAND("PWD")) {  // Print Working Directory of the server
+      char cwd[MAX_BUFF];         // Current Working Directory
       getcwd(cwd, sizeof(cwd));
       fprintf(fd, "257 %s\n", cwd);
       fflush(fd);
@@ -127,42 +123,42 @@ void ClientConnection::WaitForRequests() {
         fflush(fd);
         parar = true;
       }
-    } else if (COMMAND("PASV")) {
-      // To be implemented by students
-      int s = define_socket_TCP(0);
-      struct sockaddr_in fsin;
-      socklen_t len = sizeof(fsin);
+    } else if (COMMAND("PASV")) {    // The server opens a port and listens for
+                                     // the client to connect to it
+      int s = define_socket_TCP(0);  // Passive listening in port 0
+      struct sockaddr_in fsin;       // Address of the client
+      socklen_t len = sizeof(fsin);  // Size of the address
+      // Get the address of the server and save it to the client
       getsockname(s, (struct sockaddr *)&fsin, &len);
-      uint16_t port = fsin.sin_port;
+      uint16_t port = fsin.sin_port;  // Get the port of the server
       int p1 = (port >> 8) & 0xff;
       int p2 = port & 0xff;
       fprintf(fd, "227 Entering Passive Mode (127,0,0,1,%d,%d).\n", p1, p2);
       fflush(fd);
+      // Accept a new connection form the client for data transferring
+      // based on the same address family and type protocol as the socket
+      // which binded to the port 0 to listen the incoming connections
       data_socket = accept(s, (struct sockaddr *)&fsin, &len);
       fprintf(fd, "200 Command okay.\n");
       fflush(fd);
     } else if (COMMAND(
                    "PORT")) {  // The IP and the port are from the client, the
-                               // server is at IP_ANNY(0.0.0.0/0) and port 2121
+                               // server is at IP_ANY(0.0.0.0/0) and port 2121
       fscanf(fd, "%s", arg);
       fflush(fd);
-      std::cout << "arg: " << arg << std::endl;
-      int a1, a2, a3, a4, p1,
-          p2;  // ai -> address components, pi -> port components
+      int a1, a2, a3, a4, p1, p2;  // ai -> address components, pi -> port components
       sscanf(arg, "%d,%d,%d,%d,%d,%d", &a1, &a2, &a3, &a4, &p1, &p2);
       uint16_t port = p1 << 8 | p2;
-      uint32_t ip =
-          a1 << 24 | a2 << 16 | a3 << 8 |
-          a4;  // If it does not work, check connect_TCP() implementation
-      std::cout << "ip: " << ip << std::endl;
-      std::cout << "port: " << port << std::endl;
-      data_socket = connect_TCP(ip, port);
-      std::cout << "data_socket: " << data_socket << std::endl;
+      // uint32_t ip = a1 << 24 | a2 << 16 | a3 << 8 | a4;
+      std::string ip_string = std::to_string(a1) + "." + std::to_string(a2) +
+        "." + std::to_string(a3) + "." + std::to_string(a4);
+      // In active mode, the server connects to the client for transferring data
+      //data_socket = connect_TCP(ip, port);
+      data_socket = connect_TCP(ip_string.c_str(), port);
       fprintf(fd, "200 Command okay.\n");
       fflush(fd);
     } else if (COMMAND("STOR")) {  // Uploads a copy of a file to the server,
-                                   // replacing it if it exists
-      // To be implemented by students
+                                   // replacing it if it exists (put)
       fscanf(fd, "%s", arg);
       fflush(fd);
       FILE *f = fopen(arg, "wb");
@@ -254,8 +250,8 @@ void ClientConnection::WaitForRequests() {
     } else {
       fprintf(fd, "502 Command not implemented.\n");
       fflush(fd);
-      printf("Comando : %s %s\n", command, arg);
-      printf("Error interno del servidor\n");
+      printf("Command : %s %s\n", command, arg);
+      printf("Server internal error\n");
     }
   }
 
