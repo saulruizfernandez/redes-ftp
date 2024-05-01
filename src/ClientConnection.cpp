@@ -130,7 +130,7 @@ void ClientConnection::WaitForRequests() {
       socklen_t len = sizeof(fsin);  // Size of the address
       // Get the address of the server and save it to the client
       getsockname(s, (struct sockaddr *)&fsin, &len);
-      uint16_t port = fsin.sin_port;  // Get the port of the server
+      uint16_t port = ntohs(fsin.sin_port);  // Get the port of the server
       int p1 = (port >> 8) & 0xff;
       int p2 = port & 0xff;
       fprintf(fd, "227 Entering Passive Mode (127,0,0,1,%d,%d).\n", p1, p2);
