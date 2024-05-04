@@ -127,6 +127,26 @@ void ClientConnection::WaitForRequests() {
         fflush(fd);
         parar = true;
       }
+    }  else if (COMMAND(
+                   "PORT")) {  // The IP and the port are from the client, the
+                               // server is at IP_ANY(0.0.0.0/0) and port 2121
+      //fscanf(fd, "%s", arg);
+      //fflush(fd);
+      int a1, a2, a3, a4, p1, p2;  // ai -> address components, pi -> port components
+      fscanf(fd, "%d,%d,%d,%d,%d,%d", &a1, &a2, &a3, &a4, &p1, &p2);
+      uint16_t port = (p1 << 8 | p2);
+      uint32_t ip = (a1 << 24 | a2 << 16 | a3 << 8 | a4);
+      //std::string ip_string = std::to_string(a1) + "." + std::to_string(a2) +
+      //  "." + std::to_string(a3) + "." + std::to_string(a4);
+      // In active mode, the server connects to the client for transferring data
+      //data_socket = connect_TCP(ip, port);
+      data_socket = connect_TCP(ip, port);
+      if (data_socket < 0) {
+        errexit("Error connecting to the client: %s\n", strerror(errno));
+      }
+      else {
+        fprintf(fd, "200 Command okay.\n");
+      }
     } else if (COMMAND("PASV")) {    // The server opens a port and listens for
                                      // the client to connect to it
       int s = define_socket_TCP(0);  // Passive listening in port 0
@@ -147,26 +167,6 @@ void ClientConnection::WaitForRequests() {
       //fprintf(fd, "200 Command okay.\n");
       //fflush(fd);
       close(s);
-    } else if (COMMAND(
-                   "PORT")) {  // The IP and the port are from the client, the
-                               // server is at IP_ANY(0.0.0.0/0) and port 2121
-      //fscanf(fd, "%s", arg);
-      //fflush(fd);
-      int a1, a2, a3, a4, p1, p2;  // ai -> address components, pi -> port components
-      fscanf(fd, "%d,%d,%d,%d,%d,%d", &a1, &a2, &a3, &a4, &p1, &p2);
-      uint16_t port = (p1 << 8 | p2);
-      uint32_t ip = (a1 << 24 | a2 << 16 | a3 << 8 | a4);
-      //std::string ip_string = std::to_string(a1) + "." + std::to_string(a2) +
-      //  "." + std::to_string(a3) + "." + std::to_string(a4);
-      // In active mode, the server connects to the client for transferring data
-      //data_socket = connect_TCP(ip, port);
-      data_socket = connect_TCP(ip, port);
-      if (data_socket < 0) {
-        errexit("Error connecting to the client: %s\n", strerror(errno));
-      }
-      else {
-        fprintf(fd, "200 Command okay.\n");
-      }
     } else if (COMMAND("STOR")) {  // Uploads a copy of a file to the server,
                                    // replacing it if it exists (put)
       fscanf(fd, "%s", arg);
@@ -224,9 +224,9 @@ void ClientConnection::WaitForRequests() {
         fprintf(fd, "226 Closing data connection. Requested file action successful.\n");
         fflush(fd);
       }
-    } else if (COMMAND(
-                   "LIST")) {  // Hace que el servidor envíe una lista de los
-                               // archivos en el directorio actual al cliente.
+        } else if (COMMAND(
+           "LIST")) {  // Hace que el servidor envíe una lista de los
+               // archivos en el directorio actual al cliente.
       // To be implemented by students
       struct dirent *e;
       DIR *d = opendir(".");
@@ -234,6 +234,7 @@ void ClientConnection::WaitForRequests() {
       fflush(fd);
       while (e = readdir(d)) {
         send(data_socket, e->d_name, strlen(e->d_name), 0);
+        send(data_socket, " ", 1, 0); // Print a space after each directory entry
       }
       fprintf(fd, "226 Directory send OK.\n");
       fflush(fd);
