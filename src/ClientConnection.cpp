@@ -184,13 +184,10 @@ void ClientConnection::WaitForRequests() {
       fflush(fd);
       close(data_socket);
       fclose(f);
-    } else if (COMMAND("RETR")) {  // Hace que el servidor transfiera una copia
-                                   // del archivo, especificado en el argumento,
-                                   // al cliente.
+    } else if (COMMAND("RETR")) {  // Server transferrs a copy of the file to the client (get)
       fscanf(fd, "%s", arg);
       fflush(fd);
-      // Abrir el fichero en modo lectura binario
-      FILE *f = fopen(arg, "rb");
+      FILE *f = fopen(arg, "rb"); // Open file in read-binary mode
       if (f == NULL) {
         fprintf(fd, "550 File not found.\n");
         fflush(fd);
@@ -199,13 +196,13 @@ void ClientConnection::WaitForRequests() {
         fprintf(fd, "150 File status okay; about to open data connection.\n");
         fflush(fd);
       }
+      // Read file and send by blocks
       while (1) {
         char buffer[MAX_BUFF];
         int n = fread(buffer, 1, MAX_BUFF, f);
         if (n == 0) break;
         send(data_socket, buffer, n, 0);
-        if (n <
-            MAX_BUFF) {  // If it does not reach the end, it is the last package
+        if (n < MAX_BUFF) {  // If it does not reach the end, it means it is the last package
           break;
         }
       }
@@ -215,10 +212,8 @@ void ClientConnection::WaitForRequests() {
       fflush(fd);
       close(data_socket);
       fclose(f);
-    } else if (COMMAND(
-                   "LIST")) {  // Hace que el servidor envíe una lista de los
-                               // archivos en el directorio actual al cliente.
-      // To be implemented by students
+    } else if (COMMAND("LIST")) {  // Server sends a list of the files in the
+                                   // current working directory to the client
       struct dirent *e;
       DIR *d = opendir(".");
       fprintf(fd, "150 Here comes the directory listing.\n");
@@ -231,15 +226,16 @@ void ClientConnection::WaitForRequests() {
       close(data_socket);
       closedir(d);
 
-    } else if (COMMAND("SYST")) {
+    } else if (COMMAND("SYST")) { // Determine which OS is running on the server
       fprintf(fd, "215 UNIX Type: L8.\n");
       fflush(fd);
-    } else if (COMMAND("TYPE")) {
+    } else if (COMMAND("TYPE")) { // Inform the server which type of data is being
+                                  // transferred by the client
       fscanf(fd, "%s", arg);
       fflush(fd);
       fprintf(fd, "200 OK\n");
       fflush(fd);
-    } else if (COMMAND("QUIT")) {
+    } else if (COMMAND("QUIT")) { // Log-off FTP session
       fprintf(fd,
               "221 Service closing control connection. Logged out if "
               "appropriate.\n");
